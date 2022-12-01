@@ -21,13 +21,20 @@ fn init(mut commands: Commands) {
 fn spawn_boids(mut commands: Commands, assets: Res<AssetServer>) {
     let boid_texture: Handle<Image> = assets.load("boid.png");
 
-    commands.spawn(BoidBundle::from_texture(boid_texture));
+    commands.spawn(BoidBundle::from_texture(boid_texture.clone()));
+
+    commands.spawn(
+        BoidBundle {
+            boid: Boid { velocity: Vec2{ x: 0.5, y: 0.1 }, ..Boid::new() },
+            ..BoidBundle::from_texture_and_position(boid_texture.clone(), Vec2{ x:-200., y:0.})
+        }
+    );
 }
 
 fn move_boids(mut boid_query: Query<(&Boid, &mut Transform)>) {
     for (boid, mut boid_transform) in boid_query.iter_mut() {
-        boid_transform.translation.x += boid.velocity.0 as f32;
-        boid_transform.translation.y += boid.velocity.1 as f32;
+        boid_transform.translation.x += boid.velocity.x as f32;
+        boid_transform.translation.y += boid.velocity.y as f32;
     }
 }
 

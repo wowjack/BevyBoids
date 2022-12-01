@@ -2,16 +2,16 @@
 
 use bevy::prelude::*;
 
-#[derive(Component, PartialEq, Eq, Debug)]
+#[derive(Component, PartialEq, Debug)]
 pub struct Boid {
-    uid: uid::Id<Boid>,
-    pub velocity: (i32, i32),
+    pub uid: uid::Id<Boid>,
+    pub velocity: Vec2,
 }
 impl Boid {
     pub fn new() -> Self {
         Boid {
             uid: uid::Id::new(),
-            velocity: (1, 1)
+            velocity: Vec2::default()
         }
     }
 }
@@ -19,8 +19,8 @@ impl Boid {
 
 #[derive(Bundle)]
 pub struct BoidBundle {
-    sprite: SpriteBundle,
-    boid: Boid
+    pub sprite: SpriteBundle,
+    pub boid: Boid
 }
 impl BoidBundle {
     pub fn from_texture(texture: Handle<Image>) -> Self {
@@ -45,6 +45,7 @@ impl BoidBundle {
                     custom_size: Some(Vec2{ x:15., y:20.}),
                     ..default()
                 },
+                transform: Transform { translation: Vec3 { x: position.x, y: position.y, z: 0.}, ..default() },
                 ..default()
             },
             boid: Boid::new()
