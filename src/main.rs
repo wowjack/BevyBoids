@@ -21,20 +21,26 @@ fn init(mut commands: Commands) {
 fn spawn_boids(mut commands: Commands, assets: Res<AssetServer>) {
     let boid_texture: Handle<Image> = assets.load("boid.png");
 
-    commands.spawn(BoidBundle::from_texture(boid_texture.clone()));
-
+    use bevy::math::vec2;
     commands.spawn(
-        BoidBundle {
-            boid: Boid { velocity: Vec2{ x: 0.5, y: 0.1 }, ..Boid::new() },
-            ..BoidBundle::from_texture_and_position(boid_texture.clone(), Vec2{ x:-200., y:0.})
-        }
+        BoidBundle::with_velocity_and_position(
+            boid_texture.clone(),
+            vec2(0.5, 0.2),
+            vec2(-200., 0.)
+        )
+    );
+    commands.spawn(
+        BoidBundle::with_velocity_and_position(
+            boid_texture.clone(),
+            vec2(-0.3, -0.2),
+            vec2(200., -100.)
+        )
     );
 }
 
 fn move_boids(mut boid_query: Query<(&Boid, &mut Transform)>) {
     for (boid, mut boid_transform) in boid_query.iter_mut() {
-        boid_transform.translation.x += boid.velocity.x as f32;
-        boid_transform.translation.y += boid.velocity.y as f32;
+        boid_transform.translation += Vec3::from((boid.velocity, 0.));
     }
 }
 
