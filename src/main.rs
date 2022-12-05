@@ -2,6 +2,7 @@
 
 use bevy::prelude::*;
 use boid::*;
+use rand::Rng;
 
 mod boid;
 
@@ -19,24 +20,25 @@ fn init(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 }
 
-fn spawn_boids(mut commands: Commands, assets: Res<AssetServer>) {
+fn spawn_boids(mut commands: Commands, assets: Res<AssetServer>, windows: Res<Windows>) {
     let boid_texture: Handle<Image> = assets.load("boid.png");
+    let window = windows.get_primary().unwrap();
 
-    use bevy::math::vec2;
-    commands.spawn(
-        BoidBundle::with_velocity_and_position(
-            boid_texture.clone(),
-            vec2(1., 0.4),
-            vec2(-200., 0.)
-        )
-    );
-    commands.spawn(
-        BoidBundle::with_velocity_and_position(
-            boid_texture.clone(),
-            vec2(-0.8, -0.4),
-            vec2(200., -100.)
-        )
-    );
+    let mut rng = rand::thread_rng();
+    for _ in 0..30 {
+        let xvel = rng.gen_range(0.3..2.0) * if rand::random() {-1.} else {1.};
+        let yvel = rng.gen_range(0.3..2.0) * if rand::random() {-1.} else {1.};
+        let xpos = rng.gen_range(window.width()/-2.0 .. window.width()/2.0);
+        let ypos = rng.gen_range(window.height()/-2.0 .. window.height()/2.0);
+        use bevy::math::vec2;
+        commands.spawn(
+            BoidBundle::with_velocity_and_position(
+                boid_texture.clone(),
+                vec2(xvel, yvel),
+                vec2(xpos, ypos)
+            )
+        );
+    }
 }
 
 fn move_boids(mut boid_query: Query<(&Boid, &mut Transform)>) {
