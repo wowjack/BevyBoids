@@ -26,9 +26,14 @@ impl Boid {
             .with_system(boid_stick_together)
     }
 
-    pub fn steer_towards(&self, boid_transform: &Mut<Transform>, point: Vec3, multipiler: f32) {
+    pub fn steer_towards(boid: &mut core::cell::RefMut<(Mut<Boid>, Mut<Transform>)>, point: Vec3, multiplier: f32) {
         //Turns towards point by multiplier amount. 1 makes it steer directly towards point
-        println!("Turning boid {:?} towards {:?}", self.uid, point);
+        let angle_between = (point - boid.1.translation).angle_between(Vec3::from((boid.0.velocity, 0.)));
+        if point.x < boid.1.translation.x {
+            boid.1.rotate_z(angle_between * multiplier);
+        } else {
+            boid.1.rotate_z(angle_between * multiplier * -1.);
+        }
     }
 }
 
@@ -100,13 +105,14 @@ fn boid_stick_together(mut boid_query: Query<(&mut Boid, &mut Transform)>) {
             let cmp_boid = cmp_boid_ref.borrow();
             if cmp_boid.0.uid==boid.0.uid || !boid_is_nearby(&boid.1, &cmp_boid.1, 100.) { continue }
             position_sum += cmp_boid.1.translation;
+            position_count += 1;
         }
         }
-        //HANDLE CASES WHERE POSITION SUM IS 0
-        println!("Position sum: {:?}", position_sum);
+        if position_count == 0 { continue }
+
         position_sum /= position_count as f32;
         let mut boid = boid_ref.borrow_mut();
-        boid.0.steer_towards(&boid.1, position_sum, 1.);
+        Boid::steer_towards(&mut boid, position_sum, 0.01);
     }
 }
 
