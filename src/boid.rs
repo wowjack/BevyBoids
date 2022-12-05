@@ -125,6 +125,15 @@ fn boid_follow_others() {
     //Steer towards the average heading of nearby boids
 }
 
-fn boid_stick_together() {
+fn boid_stick_together(mut boid_query: Query<(&mut Boid, &mut Transform)>) {
     //Steer towards the average position of nearby boids
+    use std::{rc::Rc, cell::RefCell};
+    let boid_list: Vec<Rc<RefCell<(Mut<Boid>, Mut<Transform>)>>> = boid_query.iter_mut().map(|b| Rc::new(RefCell::new(b))).collect();
+    for boid in boid_list.iter() {
+        println!("mutating boid: {:?}", boid.borrow().0.uid);
+        for cmp_boid in boid_list.iter() {
+            if cmp_boid.borrow().0.uid == boid.borrow().0.uid { continue }
+            println!("\tusing boid: {:?}", cmp_boid.borrow().0.uid);
+        }
+    }
 }
