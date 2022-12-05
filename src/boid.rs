@@ -25,50 +25,12 @@ impl Boid {
             .with_system(boid_follow_others)
             .with_system(boid_stick_together)
     }
-}
 
-
-#[derive(Bundle)]
-pub struct BoidBundle {
-    pub sprite: SpriteBundle,
-    pub boid: Boid
-}
-impl BoidBundle {
-    pub fn new(texture: Handle<Image>) -> Self {
-        Self {
-            sprite: SpriteBundle {
-                texture,
-                sprite: Sprite {
-                    custom_size: Some(Vec2{ x:15., y:20.}),
-                    ..default()
-                },
-                ..default()
-            },
-            boid: Boid::new()
-        }
-    }
-
-    pub fn with_position(texture: Handle<Image>, position: Vec2) -> Self {
-        let mut new_boid_bundle: Self = BoidBundle::new(texture);
-        new_boid_bundle.sprite.transform.translation = Vec3::from((position, 0.));
-        return new_boid_bundle;
-    }
-
-    pub fn with_velocity(texture: Handle<Image>, velocity: Vec2) -> Self {
-        //rotation must be set such that the boid looks like the boid moves forward
-        let mut new_boid_bundle: Self = Self::new(texture);
-        new_boid_bundle.boid.velocity = velocity;
-        new_boid_bundle.sprite.transform.rotation = Quat::from_rotation_z(velocity.y.atan2(velocity.x) - std::f32::consts::FRAC_PI_2);
-        return new_boid_bundle;
-    }
-
-    pub fn with_velocity_and_position(texture: Handle<Image>, velocity: Vec2, position: Vec2) -> Self {
-        let mut new_boid_bundle: Self = Self::with_velocity(texture, velocity);
-        new_boid_bundle.sprite.transform.translation = Vec3::from((position, 0.));
-        return new_boid_bundle;
+    pub fn steer_towards(&self, boid_transform: &Mut<Transform>, point: Vec3, multipiler: f32) {
+        //Turns towards point by multiplier amount. 1 makes it steer directly towards point
+        println!("Turning boid {:?} towards {:?}", self.uid, point);
     }
 }
-
 
 pub fn spawn_boids(mut commands: Commands, assets: Res<AssetServer>, windows: Res<Windows>) {
     let boid_texture: Handle<Image> = assets.load("boid.png");
@@ -129,11 +91,68 @@ fn boid_stick_together(mut boid_query: Query<(&mut Boid, &mut Transform)>) {
     //Steer towards the average position of nearby boids
     use std::{rc::Rc, cell::RefCell};
     let boid_list: Vec<Rc<RefCell<(Mut<Boid>, Mut<Transform>)>>> = boid_query.iter_mut().map(|b| Rc::new(RefCell::new(b))).collect();
-    for boid in boid_list.iter() {
-        println!("mutating boid: {:?}", boid.borrow().0.uid);
-        for cmp_boid in boid_list.iter() {
-            if cmp_boid.borrow().0.uid == boid.borrow().0.uid { continue }
-            println!("\tusing boid: {:?}", cmp_boid.borrow().0.uid);
+    for boid_ref in boid_list.iter() {
+        let mut position_sum = bevy::math::vec3(0., 0., 0.);
+        let mut position_count = 0u8;
+        {
+        let boid = boid_ref.borrow();
+        for cmp_boid_ref in boid_list.iter() {
+            let cmp_boid = cmp_boid_ref.borrow();
+            if cmp_boid.0.uid==boid.0.uid || !boid_is_nearby(&boid.1, &cmp_boid.1, 100.) { continue }
+            position_sum += cmp_boid.1.translation;
         }
+        }
+        //HANDLE CASES WHERE POSITION SUM IS 0
+        println!("Position sum: {:?}", position_sum);
+        position_sum /= position_count as f32;
+        let mut boid = boid_ref.borrow_mut();
+        boid.0.steer_towards(&boid.1, position_sum, 1.);
+    }
+}
+
+fn boid_is_nearby(transform1: &Mut<Transform>, transform2: &Mut<Transform>, range: f32) -> bool {
+    transform1.translation.distance(transform2.translation) < range
+}
+
+
+
+#[derive(Bundle)]
+pub struct BoidBundle {
+    pub sprite: SpriteBundle,
+    pub boid: Boid
+}
+impl BoidBundle {
+    pub fn new(texture: Handle<Image>) -> Self {
+        Self {
+            sprite: SpriteBundle {
+                texture,
+                sprite: Sprite {
+                    custom_size: Some(Vec2{ x:15., y:20.}),
+                    ..default()
+                },
+                ..default()
+            },
+            boid: Boid::new()
+        }
+    }
+
+    pub fn with_position(texture: Handle<Image>, position: Vec2) -> Self {
+        let mut new_boid_bundle: Self = BoidBundle::new(texture);
+        new_boid_bundle.sprite.transform.translation = Vec3::from((position, 0.));
+        return new_boid_bundle;
+    }
+
+    pub fn with_velocity(texture: Handle<Image>, velocity: Vec2) -> Self {
+        //rotation must be set such that the boid looks like the boid moves forward
+        let mut new_boid_bundle: Self = Self::new(texture);
+        new_boid_bundle.boid.velocity = velocity;
+        new_boid_bundle.sprite.transform.rotation = Quat::from_rotation_z(velocity.y.atan2(velocity.x) - std::f32::consts::FRAC_PI_2);
+        return new_boid_bundle;
+    }
+
+    pub fn with_velocity_and_position(texture: Handle<Image>, velocity: Vec2, position: Vec2) -> Self {
+        let mut new_boid_bundle: Self = Self::with_velocity(texture, velocity);
+        new_boid_bundle.sprite.transform.translation = Vec3::from((position, 0.));
+        return new_boid_bundle;
     }
 }
