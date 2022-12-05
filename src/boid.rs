@@ -92,6 +92,9 @@ pub fn spawn_boids(mut commands: Commands, assets: Res<AssetServer>, windows: Re
     }
 }
 
+
+//PERHAPS COMBINING THE FOLLOWING SYSTEMS WILL IMPROVE PERFORMANCE
+
 fn move_boids(mut boid_query: Query<(&Boid, &mut Transform)>) {
     for (boid, mut boid_transform) in boid_query.iter_mut() {
         boid_transform.translation += Vec3::from((boid.velocity, 0.));
@@ -114,7 +117,7 @@ fn boid_window_border_wraparound(mut boid_query: Query<(&mut Transform, &Sprite)
     }
 }
 
-fn boid_avoid_others() {
+fn boid_avoid_others(mut boid_query: Query<(&mut Boid, &mut Transform)>) {
     //Avoid running into other boids
 }
 
