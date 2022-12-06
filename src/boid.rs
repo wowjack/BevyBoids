@@ -28,13 +28,18 @@ impl Boid {
 
     pub fn steer_towards(boid: &mut core::cell::RefMut<(Mut<Boid>, Mut<Transform>)>, point: Vec3, multiplier: f32) {
         //Turns towards point by multiplier amount. 1 makes it steer directly towards point
-        let rotation_vec = bevy::math::vec3(boid.1.rotation.to_euler(EulerRot::XYZ).2.tan(), 1., 0.);
-        let angle_between = (point - boid.1.translation).angle_between(rotation_vec);
-        println!("angle between: {angle_between}");
-        if point.x < boid.1.translation.x {
-            boid.1.rotate_z(angle_between * multiplier);
-        } else {
+        let boid_angle = boid.1.rotation.to_euler(EulerRot::XYZ).2;
+        let comparison_point = point - boid.1.translation;
+        let angle_between = comparison_point.angle_between(bevy::math::vec3(boid_angle.sin()*-1., boid_angle.cos(), 0.));
+        let point_angle = (comparison_point.y.atan2(comparison_point.x) + (std::f32::consts::PI*1.5)) % std::f32::consts::TAU;
+
+        use std::f32::consts::*;
+        if (point_angle-boid_angle+(PI+TAU))%TAU - PI < 0. {
             boid.1.rotate_z(angle_between * multiplier * -1.);
+            boid.0.velocity = Vec2::from_angle(angle_between * multiplier * -1.).rotate(boid.0.velocity);
+        } else {
+            boid.1.rotate_z(angle_between * multiplier);
+            boid.0.velocity = Vec2::from_angle(angle_between * multiplier).rotate(boid.0.velocity);
         }
     }
 }
@@ -43,27 +48,22 @@ pub fn spawn_boids(mut commands: Commands, assets: Res<AssetServer>, windows: Re
     let boid_texture: Handle<Image> = assets.load("boid.png");
     let window = windows.get_primary().unwrap();
 
-    commands.spawn(BoidBundle::with_position(boid_texture.clone(), bevy::math::vec2(-45., 0.)));
-    commands.spawn(BoidBundle::with_position(boid_texture.clone(), bevy::math::vec2(45., 0.)));
-
-
-
-    // use rand::Rng;
-    // let mut rng = rand::thread_rng();
-    // for _ in 0..30 {
-    //     let xvel = rng.gen_range(0.3..2.0) * if rand::random() {-1.} else {1.};
-    //     let yvel = rng.gen_range(0.3..2.0) * if rand::random() {-1.} else {1.};
-    //     let xpos = rng.gen_range(window.width()/-2.0 .. window.width()/2.0);
-    //     let ypos = rng.gen_range(window.height()/-2.0 .. window.height()/2.0);
-    //     use bevy::math::vec2;
-    //     commands.spawn(
-    //         BoidBundle::with_velocity_and_position(
-    //             boid_texture.clone(),
-    //             vec2(xvel, yvel),
-    //             vec2(xpos, ypos)
-    //         )
-    //     );
-    // }
+    use rand::Rng;
+    let mut rng = rand::thread_rng();
+    for _ in 0..30 {
+        let xvel = rng.gen_range(0.3..2.0) * if rand::random() {-1.} else {1.};
+        let yvel = rng.gen_range(0.3..2.0) * if rand::random() {-1.} else {1.};
+        let xpos = rng.gen_range(window.width()/-2.0 .. window.width()/2.0);
+        let ypos = rng.gen_range(window.height()/-2.0 .. window.height()/2.0);
+        use bevy::math::vec2;
+        commands.spawn(
+            BoidBundle::with_velocity_and_position(
+                boid_texture.clone(),
+                vec2(xvel, yvel),
+                vec2(xpos, ypos)
+            )
+        );
+    }
 }
 
 
