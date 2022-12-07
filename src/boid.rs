@@ -2,6 +2,9 @@
 
 use bevy::prelude::*;
 
+const NUM_BOIDS: u8 = 50;
+const BOID_RANGE: f32 = 100.;
+
 #[derive(Component, PartialEq, Debug)]
 pub struct Boid {
     pub uid: uid::Id<Boid>,
@@ -26,7 +29,7 @@ impl Boid {
             .with_system(boid_stick_together)
     }
 
-    pub fn steer_towards(boid: &mut core::cell::RefMut<(Mut<Boid>, Mut<Transform>)>, point: Vec3, multiplier: f32) {
+    pub fn steer_towards_point(boid: &mut core::cell::RefMut<(Mut<Boid>, Mut<Transform>)>, point: Vec3, multiplier: f32) {
         //Turns towards point by multiplier amount. 1 makes it steer directly towards point
         let boid_angle = boid.1.rotation.to_euler(EulerRot::XYZ).2;
         let comparison_point = point - boid.1.translation;
@@ -42,6 +45,20 @@ impl Boid {
             boid.0.velocity = Vec2::from_angle(angle_between * multiplier).rotate(boid.0.velocity);
         }
     }
+    pub fn steer_towards_velocity(boid: &mut core::cell::RefMut<(Mut<Boid>, Mut<Transform>)>, velocity: Vec2, multiplier: f32) {
+        let boid_angle = boid.1.rotation.to_euler(EulerRot::XYZ).2;
+        let target_heading = (velocity.y.atan2(velocity.x) + (std::f32::consts::PI*1.5)) % std::f32::consts::TAU;
+        let angle_between = Vec3::from((velocity, 0.)).angle_between(bevy::math::vec3(boid_angle.sin()*-1., boid_angle.cos(), 0.));
+
+        use std::f32::consts::*;
+        if (target_heading-boid_angle+(PI+TAU))%TAU - PI < 0. {
+            boid.1.rotate_z(angle_between * multiplier * -1.);
+            boid.0.velocity = Vec2::from_angle(angle_between * multiplier * -1.).rotate(boid.0.velocity);
+        } else {
+            boid.1.rotate_z(angle_between * multiplier);
+            boid.0.velocity = Vec2::from_angle(angle_between * multiplier).rotate(boid.0.velocity);
+        }
+    }
 }
 
 pub fn spawn_boids(mut commands: Commands, assets: Res<AssetServer>, windows: Res<Windows>) {
@@ -50,7 +67,7 @@ pub fn spawn_boids(mut commands: Commands, assets: Res<AssetServer>, windows: Re
 
     use rand::Rng;
     let mut rng = rand::thread_rng();
-    for _ in 0..30 {
+    for _ in 0..NUM_BOIDS {
         let xvel = rng.gen_range(0.3..2.0) * if rand::random() {-1.} else {1.};
         let yvel = rng.gen_range(0.3..2.0) * if rand::random() {-1.} else {1.};
         let xpos = rng.gen_range(window.width()/-2.0 .. window.width()/2.0);
@@ -95,8 +112,28 @@ fn boid_avoid_others(mut boid_query: Query<(&mut Boid, &mut Transform)>) {
     //Avoid running into other boids
 }
 
-fn boid_follow_others() {
+fn boid_follow_others(mut boid_query: Query<(&mut Boid, &mut Transform)>) {
     //Steer towards the average heading of nearby boids
+    use std::{rc::Rc, cell::RefCell};
+    let boid_list: Vec<Rc<RefCell<(Mut<Boid>, Mut<Transform>)>>> = boid_query.iter_mut().map(|b| Rc::new(RefCell::new(b))).collect();
+    for boid_ref in boid_list.iter() {
+        let mut velocity_sum = bevy::math::vec2(0., 0.);
+        let mut velocity_count = 0u8;
+        {
+        let boid = boid_ref.borrow();
+        for cmp_boid_ref in boid_list.iter() {
+            let cmp_boid = cmp_boid_ref.borrow();
+            if cmp_boid.0.uid==boid.0.uid || !boid_is_nearby(&boid.1, &cmp_boid.1, BOID_RANGE) { continue }
+            velocity_sum += cmp_boid.0.velocity;
+            velocity_count += 1;
+        }
+        }
+        if velocity_count == 0 { continue }
+
+        velocity_sum /= velocity_count as f32;
+        let mut boid = boid_ref.borrow_mut();
+        Boid::steer_towards_velocity(&mut boid, velocity_sum, 0.05);
+    }
 }
 
 fn boid_stick_together(mut boid_query: Query<(&mut Boid, &mut Transform)>) {
@@ -110,7 +147,7 @@ fn boid_stick_together(mut boid_query: Query<(&mut Boid, &mut Transform)>) {
         let boid = boid_ref.borrow();
         for cmp_boid_ref in boid_list.iter() {
             let cmp_boid = cmp_boid_ref.borrow();
-            if cmp_boid.0.uid==boid.0.uid || !boid_is_nearby(&boid.1, &cmp_boid.1, 100.) { continue }
+            if cmp_boid.0.uid==boid.0.uid || !boid_is_nearby(&boid.1, &cmp_boid.1, BOID_RANGE) { continue }
             position_sum += cmp_boid.1.translation;
             position_count += 1;
         }
@@ -119,7 +156,7 @@ fn boid_stick_together(mut boid_query: Query<(&mut Boid, &mut Transform)>) {
 
         position_sum /= position_count as f32;
         let mut boid = boid_ref.borrow_mut();
-        Boid::steer_towards(&mut boid, position_sum, 0.01);
+        Boid::steer_towards_point(&mut boid, position_sum, 0.01);
     }
 }
 
