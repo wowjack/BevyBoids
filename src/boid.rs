@@ -140,7 +140,6 @@ fn boid_avoid_others(mut boid_query: Query<(&mut Boid, &mut Transform)>) {
     }
 }
 
-
 fn boid_follow_others(mut boid_query: Query<(&mut Boid, &mut Transform)>) {
     //Steer towards the average heading of nearby boids
     use std::{rc::Rc, cell::RefCell};

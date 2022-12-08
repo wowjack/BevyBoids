@@ -7,6 +7,7 @@ use boid::*;
 
 fn main() {
     App::new()
+        .insert_resource(ClearColor(Color::rgb(0.7, 0.7, 0.7)))
         .add_plugins(DefaultPlugins)
         .add_startup_system(init)
         .add_startup_system(spawn_boids)
