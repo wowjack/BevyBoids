@@ -1,10 +1,10 @@
 #![allow(unused)]
 
 use bevy::prelude::*;
+use bevy_prototype_lyon::prelude::*;
 
 use crate::UIState;
 
-const BOID_RANGE: f32 = 100.;
 const BOID_WIDTH: f32 = 15.;
 
 #[derive(Component, PartialEq, Debug)]
@@ -81,6 +81,7 @@ pub fn spawn_boids(mut commands: Commands, assets: Res<AssetServer>, windows: Re
         let yvel = rng.gen_range(0.3..2.0) * if rand::random() {-1.} else {1.};
         let xpos = rng.gen_range(window.width()/-2.0 .. window.width()/2.0);
         let ypos = rng.gen_range(window.height()/-2.0 .. window.height()/2.0);
+    
         commands.spawn(
             BoidBundle::with_velocity_and_position(
                 boid_texture.clone(),
@@ -130,7 +131,7 @@ fn boid_avoid_others(mut boid_query: Query<(&mut Boid, &mut Transform)>, ui_stat
         let c: f32 = boid.1.translation.y - (a*boid.1.translation.x);
         for cmp_boid_ref in boid_list.iter() {
             if let Ok(cmp_boid) = cmp_boid_ref.try_borrow() {
-                if !boid_is_nearby(&boid.1, &cmp_boid.1, BOID_RANGE*2.)
+                if !boid_is_nearby(&boid.1, &cmp_boid.1, ui_state.boid_range*2.)
                    || (cmp_boid.1.translation - boid.1.translation).angle_between(Vec3::from((boid.0.velocity, 0.))) >= std::f32::consts::FRAC_PI_3*2.
                    || distance_transform_to_line(a, b, c, &cmp_boid.1) > BOID_WIDTH
                 {
@@ -155,7 +156,7 @@ fn boid_follow_others(mut boid_query: Query<(&mut Boid, &mut Transform)>, ui_sta
         let boid = boid_ref.borrow();
         for cmp_boid_ref in boid_list.iter() {
             let cmp_boid = cmp_boid_ref.borrow();
-            if cmp_boid.0.uid==boid.0.uid || !boid_is_nearby(&boid.1, &cmp_boid.1, BOID_RANGE) { continue }
+            if cmp_boid.0.uid==boid.0.uid || !boid_is_nearby(&boid.1, &cmp_boid.1, ui_state.boid_range) { continue }
             velocity_sum += cmp_boid.0.velocity;
             velocity_count += 1;
         }
@@ -180,7 +181,7 @@ fn boid_stick_together(mut boid_query: Query<(&mut Boid, &mut Transform)>, ui_st
         let boid = boid_ref.borrow();
         for cmp_boid_ref in boid_list.iter() {
             let cmp_boid = cmp_boid_ref.borrow();
-            if cmp_boid.0.uid==boid.0.uid || !boid_is_nearby(&boid.1, &cmp_boid.1, BOID_RANGE) { continue }
+            if cmp_boid.0.uid==boid.0.uid || !boid_is_nearby(&boid.1, &cmp_boid.1, ui_state.boid_range) { continue }
             position_sum += cmp_boid.1.translation;
             position_count += 1;
         }
