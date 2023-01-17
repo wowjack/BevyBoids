@@ -26,6 +26,7 @@ fn init(mut commands: Commands) {
 
 #[derive(Resource)]
 pub struct UIState {
+    run: bool,
     avoid_boids: bool,
     avoid_boid_strength: f32,
     stick_together: bool,
@@ -39,12 +40,13 @@ pub struct UIState {
 impl Default for UIState {
     fn default() -> Self {
         Self {
+            run: true,
             avoid_boids: true,
             avoid_boid_strength: 0.02,
             stick_together: true,
-            stick_together_strength: 0.,
+            stick_together_strength: 0.01,
             follow_others: true,
-            follow_others_strength: 0.,
+            follow_others_strength: 0.05,
             num_boids: 100,
             prev_num_boids: 100,
             boid_texture: None,
@@ -59,29 +61,31 @@ fn ui_example(
     egui::TopBottomPanel::bottom("ui bottom panel")
         .min_height(50.)
         .show(egui_ctx.ctx_mut(), |ui| {
-            ui.label("Number of boids: ");
-            ui.add(egui::Slider::new(&mut ui_state.num_boids, 0..=500));
 
+            ui.horizontal(|ui| {
+                ui.label("Number of boids: ");
+                ui.add(egui::Slider::new(&mut ui_state.num_boids, 0..=500));
+                ui.label("\tRun simulation: ");
+                ui.checkbox(&mut ui_state.run, "");
+            });
             ui.horizontal(|ui| {
                 ui.label("Avoid other boids: ");
                 ui.checkbox(&mut ui_state.avoid_boids, "");
                 ui.label("\tBoid avoid strength: ");
-                ui.add(egui::Slider::new(&mut ui_state.avoid_boid_strength, 0.0..=10.0));
-                
+                ui.add(egui::Slider::new(&mut ui_state.avoid_boid_strength, 0.001..=1.0));
             });
             ui.horizontal(|ui| {
                 ui.label("Stick together: ");
                 ui.checkbox(&mut ui_state.stick_together, "");
                 ui.label("\tStick together strength: ");
-                ui.add(egui::Slider::new(&mut ui_state.stick_together_strength, 0.0..=10.0));
+                ui.add(egui::Slider::new(&mut ui_state.stick_together_strength, 0.001..=1.0));
                 
             });
             ui.horizontal(|ui| {
                 ui.label("Follow others: ");
                 ui.checkbox(&mut ui_state.follow_others, "");
                 ui.label("\tFollow others strength: ");
-                ui.add(egui::Slider::new(&mut ui_state.follow_others_strength, 0.0..=10.0).text("value"));
-                
+                ui.add(egui::Slider::new(&mut ui_state.follow_others_strength, 0.001..=1.0).text("value"));
             });
         });
 }

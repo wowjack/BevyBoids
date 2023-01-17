@@ -6,7 +6,6 @@ use crate::UIState;
 
 const BOID_RANGE: f32 = 100.;
 const BOID_WIDTH: f32 = 15.;
-const BOID_AVOID_STRENGTH: f32 = 0.02;
 
 #[derive(Component, PartialEq, Debug)]
 pub struct Boid {
@@ -95,7 +94,8 @@ pub fn spawn_boids(mut commands: Commands, assets: Res<AssetServer>, windows: Re
 
 //PERHAPS COMBINING THE FOLLOWING SYSTEMS WILL IMPROVE PERFORMANCE
 
-fn move_boids(mut boid_query: Query<(&Boid, &mut Transform)>) {
+fn move_boids(mut boid_query: Query<(&Boid, &mut Transform)>, ui_state: Res<UIState>) {
+    if !ui_state.run {return}
     for (boid, mut boid_transform) in boid_query.iter_mut() {
         boid_transform.translation += Vec3::from((boid.velocity, 0.));
     }
@@ -118,7 +118,7 @@ fn boid_window_border_wraparound(mut boid_query: Query<(&mut Transform, &Sprite)
 }
 
 fn boid_avoid_others(mut boid_query: Query<(&mut Boid, &mut Transform)>, ui_state: Res<UIState>) {
-    if !ui_state.avoid_boids {return}
+    if !ui_state.avoid_boids || !ui_state.run {return}
     //Avoid running into other boids
     use std::{rc::Rc, cell::RefCell};
     let boid_list: Vec<Rc<RefCell<(Mut<Boid>, Mut<Transform>)>>> = boid_query.iter_mut().map(|b| Rc::new(RefCell::new(b))).collect();
@@ -130,21 +130,21 @@ fn boid_avoid_others(mut boid_query: Query<(&mut Boid, &mut Transform)>, ui_stat
         let c: f32 = boid.1.translation.y - (a*boid.1.translation.x);
         for cmp_boid_ref in boid_list.iter() {
             if let Ok(cmp_boid) = cmp_boid_ref.try_borrow() {
-                if !boid_is_nearby(&boid.1, &cmp_boid.1, BOID_RANGE)
+                if !boid_is_nearby(&boid.1, &cmp_boid.1, BOID_RANGE*2.)
                    || (cmp_boid.1.translation - boid.1.translation).angle_between(Vec3::from((boid.0.velocity, 0.))) >= std::f32::consts::FRAC_PI_3*2.
                    || distance_transform_to_line(a, b, c, &cmp_boid.1) > BOID_WIDTH
                 {
                     continue;
                 }  
                 let side = side_of_line(boid.1.translation, boid.1.translation+Vec3::from((boid.0.velocity, 0.)), cmp_boid.1.translation);
-                Boid::rotate(&mut boid, BOID_AVOID_STRENGTH * side as f32);
+                Boid::rotate(&mut boid, ui_state.avoid_boid_strength * side as f32);
             }
         }
     }
 }
 
 fn boid_follow_others(mut boid_query: Query<(&mut Boid, &mut Transform)>, ui_state: Res<UIState>) {
-    if !ui_state.follow_others {return}
+    if !ui_state.follow_others || !ui_state.run {return}
     //Steer towards the average heading of nearby boids
     use std::{rc::Rc, cell::RefCell};
     let boid_list: Vec<Rc<RefCell<(Mut<Boid>, Mut<Transform>)>>> = boid_query.iter_mut().map(|b| Rc::new(RefCell::new(b))).collect();
@@ -164,12 +164,12 @@ fn boid_follow_others(mut boid_query: Query<(&mut Boid, &mut Transform)>, ui_sta
 
         velocity_sum /= velocity_count as f32;
         let mut boid = boid_ref.borrow_mut();
-        Boid::steer_towards_velocity(&mut boid, velocity_sum, 0.05);
+        Boid::steer_towards_velocity(&mut boid, velocity_sum, ui_state.follow_others_strength);
     }
 }
 
 fn boid_stick_together(mut boid_query: Query<(&mut Boid, &mut Transform)>, ui_state: Res<UIState>) {
-    if !ui_state.stick_together {return}
+    if !ui_state.stick_together || !ui_state.run {return}
     //Steer towards the average position of nearby boids
     use std::{rc::Rc, cell::RefCell};
     let boid_list: Vec<Rc<RefCell<(Mut<Boid>, Mut<Transform>)>>> = boid_query.iter_mut().map(|b| Rc::new(RefCell::new(b))).collect();
@@ -189,7 +189,7 @@ fn boid_stick_together(mut boid_query: Query<(&mut Boid, &mut Transform)>, ui_st
 
         position_sum /= position_count as f32;
         let mut boid = boid_ref.borrow_mut();
-        Boid::steer_towards_point(&mut boid, position_sum, 0.01);
+        Boid::steer_towards_point(&mut boid, position_sum, ui_state.stick_together_strength);
     }
 }
 
