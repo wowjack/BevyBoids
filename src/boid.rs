@@ -2,7 +2,8 @@
 
 use bevy::prelude::*;
 
-const NUM_BOIDS: u16 = 150;
+use crate::UIState;
+
 const BOID_RANGE: f32 = 100.;
 const BOID_WIDTH: f32 = 15.;
 const BOID_AVOID_STRENGTH: f32 = 0.02;
@@ -68,14 +69,15 @@ impl Boid {
     }
 }
 
-pub fn spawn_boids(mut commands: Commands, assets: Res<AssetServer>, windows: Res<Windows>) {
+pub fn spawn_boids(mut commands: Commands, assets: Res<AssetServer>, windows: Res<Windows>, mut ui_state: ResMut<UIState>) {
     let boid_texture: Handle<Image> = assets.load("boid.png");
+    ui_state.boid_texture = Some(boid_texture.clone());
     let window = windows.get_primary().unwrap();
 
     use rand::Rng;
     use bevy::math::vec2;
     let mut rng = rand::thread_rng();
-    for _ in 0..NUM_BOIDS {
+    for _ in 0..ui_state.num_boids {
         let xvel = rng.gen_range(0.3..2.0) * if rand::random() {-1.} else {1.};
         let yvel = rng.gen_range(0.3..2.0) * if rand::random() {-1.} else {1.};
         let xpos = rng.gen_range(window.width()/-2.0 .. window.width()/2.0);
@@ -115,7 +117,8 @@ fn boid_window_border_wraparound(mut boid_query: Query<(&mut Transform, &Sprite)
     }
 }
 
-fn boid_avoid_others(mut boid_query: Query<(&mut Boid, &mut Transform)>) {
+fn boid_avoid_others(mut boid_query: Query<(&mut Boid, &mut Transform)>, ui_state: Res<UIState>) {
+    if !ui_state.avoid_boids {return}
     //Avoid running into other boids
     use std::{rc::Rc, cell::RefCell};
     let boid_list: Vec<Rc<RefCell<(Mut<Boid>, Mut<Transform>)>>> = boid_query.iter_mut().map(|b| Rc::new(RefCell::new(b))).collect();
@@ -140,7 +143,8 @@ fn boid_avoid_others(mut boid_query: Query<(&mut Boid, &mut Transform)>) {
     }
 }
 
-fn boid_follow_others(mut boid_query: Query<(&mut Boid, &mut Transform)>) {
+fn boid_follow_others(mut boid_query: Query<(&mut Boid, &mut Transform)>, ui_state: Res<UIState>) {
+    if !ui_state.follow_others {return}
     //Steer towards the average heading of nearby boids
     use std::{rc::Rc, cell::RefCell};
     let boid_list: Vec<Rc<RefCell<(Mut<Boid>, Mut<Transform>)>>> = boid_query.iter_mut().map(|b| Rc::new(RefCell::new(b))).collect();
@@ -164,7 +168,8 @@ fn boid_follow_others(mut boid_query: Query<(&mut Boid, &mut Transform)>) {
     }
 }
 
-fn boid_stick_together(mut boid_query: Query<(&mut Boid, &mut Transform)>) {
+fn boid_stick_together(mut boid_query: Query<(&mut Boid, &mut Transform)>, ui_state: Res<UIState>) {
+    if !ui_state.stick_together {return}
     //Steer towards the average position of nearby boids
     use std::{rc::Rc, cell::RefCell};
     let boid_list: Vec<Rc<RefCell<(Mut<Boid>, Mut<Transform>)>>> = boid_query.iter_mut().map(|b| Rc::new(RefCell::new(b))).collect();
