@@ -3,7 +3,7 @@
 use bevy::prelude::*;
 use bevy_prototype_lyon::prelude::*;
 
-use crate::UIState;
+use crate::SimulationSettings;
 
 const BOID_WIDTH: f32 = 15.;
 
@@ -68,7 +68,7 @@ impl Boid {
     }
 }
 
-pub fn spawn_boids(mut commands: Commands, assets: Res<AssetServer>, windows: Res<Windows>, mut ui_state: ResMut<UIState>) {
+pub fn spawn_boids(mut commands: Commands, assets: Res<AssetServer>, windows: Res<Windows>, mut ui_state: ResMut<SimulationSettings>) {
     let boid_texture: Handle<Image> = assets.load("boid.png");
     ui_state.boid_texture = Some(boid_texture.clone());
     let window = windows.get_primary().unwrap();
@@ -95,7 +95,7 @@ pub fn spawn_boids(mut commands: Commands, assets: Res<AssetServer>, windows: Re
 
 //PERHAPS COMBINING THE FOLLOWING SYSTEMS WILL IMPROVE PERFORMANCE
 
-fn move_boids(mut boid_query: Query<(&Boid, &mut Transform)>, ui_state: Res<UIState>) {
+fn move_boids(mut boid_query: Query<(&Boid, &mut Transform)>, ui_state: Res<SimulationSettings>) {
     if !ui_state.run {return}
     for (boid, mut boid_transform) in boid_query.iter_mut() {
         boid_transform.translation += Vec3::from((boid.velocity, 0.));
@@ -118,7 +118,7 @@ fn boid_window_border_wraparound(mut boid_query: Query<(&mut Transform, &Sprite)
     }
 }
 
-fn boid_avoid_others(mut boid_query: Query<(&mut Boid, &mut Transform)>, ui_state: Res<UIState>) {
+fn boid_avoid_others(mut boid_query: Query<(&mut Boid, &mut Transform)>, ui_state: Res<SimulationSettings>) {
     if !ui_state.avoid_boids || !ui_state.run {return}
     //Avoid running into other boids
     use std::{rc::Rc, cell::RefCell};
@@ -144,7 +144,7 @@ fn boid_avoid_others(mut boid_query: Query<(&mut Boid, &mut Transform)>, ui_stat
     }
 }
 
-fn boid_follow_others(mut boid_query: Query<(&mut Boid, &mut Transform)>, ui_state: Res<UIState>) {
+fn boid_follow_others(mut boid_query: Query<(&mut Boid, &mut Transform)>, ui_state: Res<SimulationSettings>) {
     if !ui_state.follow_others || !ui_state.run {return}
     //Steer towards the average heading of nearby boids
     use std::{rc::Rc, cell::RefCell};
@@ -169,7 +169,7 @@ fn boid_follow_others(mut boid_query: Query<(&mut Boid, &mut Transform)>, ui_sta
     }
 }
 
-fn boid_stick_together(mut boid_query: Query<(&mut Boid, &mut Transform)>, ui_state: Res<UIState>) {
+fn boid_stick_together(mut boid_query: Query<(&mut Boid, &mut Transform)>, ui_state: Res<SimulationSettings>) {
     if !ui_state.stick_together || !ui_state.run {return}
     //Steer towards the average position of nearby boids
     use std::{rc::Rc, cell::RefCell};

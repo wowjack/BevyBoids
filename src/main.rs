@@ -10,14 +10,14 @@ use bevy_prototype_lyon::prelude::*;
 fn main() {
     App::new()
         .insert_resource(ClearColor(Color::rgb(0.7, 0.7, 0.7)))
-        .init_resource::<UIState>()
+        .init_resource::<SimulationSettings>()
         .add_plugins(DefaultPlugins)
         .add_plugin(bevy_egui:: EguiPlugin)
         .add_plugin(ShapePlugin)
         .add_startup_system(init)
         .add_startup_system(spawn_boids)
         .add_system_set(Boid::boid_system_group())
-        .add_system(ui_example)
+        .add_system(ui)
         .add_system(handle_num_boids_changes)
         .run();
 }
@@ -27,8 +27,11 @@ fn init(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 }
 
+
+/////////////////// GUI SYSTEMS ///////////////////
+
 #[derive(Resource)]
-pub struct UIState {
+pub struct SimulationSettings {
     run: bool,
     boid_range: f32,
     avoid_boids: bool,
@@ -41,7 +44,7 @@ pub struct UIState {
     prev_num_boids: u16,
     boid_texture: Option<Handle<Image>>,
 }
-impl Default for UIState {
+impl Default for SimulationSettings {
     fn default() -> Self {
         Self {
             run: true,
@@ -59,9 +62,9 @@ impl Default for UIState {
     }
 }
 
-fn ui_example(
+fn ui(
     mut egui_ctx: ResMut<EguiContext>,
-    mut ui_state: ResMut<UIState>,
+    mut ui_state: ResMut<SimulationSettings>,
     boid_query: Query<Entity, With<Boid>>,
     mut commands: Commands
 ) {
@@ -122,7 +125,7 @@ fn ui_example(
 }
 
 fn handle_num_boids_changes(
-    mut ui_state: ResMut<UIState>,
+    mut ui_state: ResMut<SimulationSettings>,
     boid_entity_query: Query<Entity, With<Boid>>,
     mut commands: Commands,
     windows: Res<Windows>
