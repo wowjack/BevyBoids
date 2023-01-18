@@ -140,21 +140,7 @@ fn handle_num_boids_changes(
             commands.entity(entity).despawn();
         }
     } else {
-        use rand::Rng;
-        let mut rng = rand::thread_rng();
-        for _ in 0..(ui_state.num_boids - ui_state.prev_num_boids) {
-            let xvel = rng.gen_range(0.3..2.0) * if rand::random() {-1.} else {1.};
-            let yvel = rng.gen_range(0.3..2.0) * if rand::random() {-1.} else {1.};
-            let xpos = rng.gen_range(window.width()/-2.0 .. window.width()/2.0);
-            let ypos = rng.gen_range(window.height()/-2.0 .. window.height()/2.0);
-            commands.spawn(
-            BoidBundle::with_velocity_and_position(
-                ui_state.boid_texture.as_ref().unwrap().clone(),
-                bevy::math::vec2(xvel, yvel),
-                bevy::math::vec2(xpos, ypos)
-            )
-        );
-        }
+        commands.spawn_batch(BoidBundle::random_boids(&ui_state.boid_texture.as_ref().unwrap().clone(), (ui_state.num_boids-ui_state.prev_num_boids).into(), window));
     }
     ui_state.prev_num_boids = ui_state.num_boids;
 }

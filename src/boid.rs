@@ -73,23 +73,7 @@ pub fn spawn_boids(mut commands: Commands, assets: Res<AssetServer>, windows: Re
     ui_state.boid_texture = Some(boid_texture.clone());
     let window = windows.get_primary().unwrap();
 
-    use rand::Rng;
-    use bevy::math::vec2;
-    let mut rng = rand::thread_rng();
-    for _ in 0..ui_state.num_boids {
-        let xvel = rng.gen_range(0.3..2.0) * if rand::random() {-1.} else {1.};
-        let yvel = rng.gen_range(0.3..2.0) * if rand::random() {-1.} else {1.};
-        let xpos = rng.gen_range(window.width()/-2.0 .. window.width()/2.0);
-        let ypos = rng.gen_range(window.height()/-2.0 .. window.height()/2.0);
-    
-        commands.spawn(
-            BoidBundle::with_velocity_and_position(
-                boid_texture.clone(),
-                vec2(xvel, yvel),
-                vec2(xpos, ypos)
-            )
-        );
-    }
+    commands.spawn_batch(BoidBundle::random_boids(&boid_texture, ui_state.num_boids.into(), window));
 }
 
 
@@ -252,5 +236,23 @@ impl BoidBundle {
         let mut new_boid_bundle: Self = Self::with_velocity(texture, velocity);
         new_boid_bundle.sprite.transform.translation = Vec3::from((position, 0.));
         return new_boid_bundle;
+    }
+
+    pub fn random_boids(texture: &Handle<Image>, num: usize, window: &Window) -> Vec<Self> {
+        use rand::Rng;
+        let mut rng = rand::thread_rng();
+        let mut v = Vec::with_capacity(num);
+        for i in 0..num {
+            let angle = rng.gen_range(0.0..std::f32::consts::TAU);
+            let velocity: f32= rng.gen_range(1.85..2.15);
+            let xpos = rng.gen_range(window.width()/-2.0 .. window.width()/2.0);
+            let ypos = rng.gen_range(window.height()/-2.0 .. window.height()/2.0);
+            v.push(Self::with_velocity_and_position(
+                texture.clone(),
+                bevy::math::vec2(velocity*angle.cos(), velocity*angle.sin()),
+                bevy::math::vec2(xpos, ypos)
+            ));
+        }
+        return v;
     }
 }
