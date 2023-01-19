@@ -7,6 +7,8 @@ use boid::*;
 use bevy_egui::{egui, EguiContext};
 use bevy_prototype_lyon::prelude::*;
 
+pub const GUI_PANEL_HEIGHT: f32 = 90.;
+
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
 enum AppState {
     Opening,
@@ -41,6 +43,9 @@ fn main() {
 fn init(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 }
+
+
+/////////////////// TITLE SCREEN SYSTEMS ///////////////////
 
 fn open_text(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font = asset_server.load("fonts/Arial.ttf");
@@ -88,6 +93,7 @@ fn remove_intro(query: Query<Entity, With<Text>>, mut commands: Commands, mut bg
     bg_color.0 = Color::rgb(0.6, 0.6, 0.6);
 }
 
+
 /////////////////// GUI SYSTEMS ///////////////////
 
 #[derive(Resource)]
@@ -128,8 +134,8 @@ fn ui(
     boid_query: Query<Entity, With<Boid>>,
     mut commands: Commands
 ) {
-    egui::TopBottomPanel::bottom("ui bottom panel")
-        .min_height(50.)
+    let _gui = egui::TopBottomPanel::bottom("ui bottom panel")
+        .height_range(GUI_PANEL_HEIGHT..=GUI_PANEL_HEIGHT)
         .show(egui_ctx.ctx_mut(), |ui| {
             ui.horizontal(|ui| {
                 ui.label("Number of boids: ");

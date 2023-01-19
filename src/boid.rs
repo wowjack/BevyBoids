@@ -3,7 +3,7 @@
 use bevy::prelude::*;
 use bevy_prototype_lyon::prelude::*;
 
-use crate::{SimulationSettings, AppState};
+use crate::{SimulationSettings, AppState, GUI_PANEL_HEIGHT};
 
 const BOID_WIDTH: f32 = 15.;
 
@@ -89,15 +89,15 @@ fn move_boids(mut boid_query: Query<(&Boid, &mut Transform)>, ui_state: Res<Simu
 fn boid_window_border_wraparound(mut boid_query: Query<(&mut Transform, &Sprite), With<Boid>>, windows: Res<Windows>) {
     let window = windows.get_primary().unwrap();
     for (mut boid_transform, sprite) in boid_query.iter_mut() {
-        if boid_transform.translation.x+(sprite.custom_size.unwrap().x/2.) < -1.*window.width()/2.
-           || boid_transform.translation.x-(sprite.custom_size.unwrap().x/2.) > window.width()/2.
-        {
-            boid_transform.translation.x *= -1.;
+        if boid_transform.translation.x - sprite.custom_size.unwrap().x/2. > window.width()/2. { //past right
+            boid_transform.translation.x = (-1.*window.width()/2.) - sprite.custom_size.unwrap().x/2.;
+        } else if boid_transform.translation.x + sprite.custom_size.unwrap().x/2. < -1.*window.width()/2. { //past left
+            boid_transform.translation.x = (window.width()/2.) + sprite.custom_size.unwrap().x/2.;
         }
-        if boid_transform.translation.y+(sprite.custom_size.unwrap().y/2.) < -1.*window.height()/2.
-           || boid_transform.translation.y-(sprite.custom_size.unwrap().y/2.) > window.height()/2.
-        {
-            boid_transform.translation.y *= -1.;
+        if boid_transform.translation.y - sprite.custom_size.unwrap().y/2. > window.height()/2. { //past top
+            boid_transform.translation.y = (-1.*window.height()/2.) - sprite.custom_size.unwrap().y/2. + GUI_PANEL_HEIGHT;
+        } else if boid_transform.translation.y + sprite.custom_size.unwrap().y/2. < -1.*(window.height()/2. - GUI_PANEL_HEIGHT) { //past bottom
+            boid_transform.translation.y = (window.height()/2.) + sprite.custom_size.unwrap().y/2.;
         }
     }
 }
