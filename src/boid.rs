@@ -3,7 +3,7 @@
 use bevy::prelude::*;
 use bevy_prototype_lyon::prelude::*;
 
-use crate::SimulationSettings;
+use crate::{SimulationSettings, AppState};
 
 const BOID_WIDTH: f32 = 15.;
 
@@ -22,13 +22,13 @@ impl Boid {
 
     pub fn boid_system_group() -> SystemSet {
         //Boids must be spawned using spawn_boids first
-        SystemSet::new()
+        SystemSet::on_update(AppState::Running)
             .label("Boid Systems")
-            .with_system(move_boids)
-            .with_system(boid_window_border_wraparound)
-            .with_system(boid_avoid_others)
-            .with_system(boid_follow_others)
-            .with_system(boid_stick_together)
+            .with_system(boid_window_border_wraparound.before(move_boids))
+            .with_system(move_boids.after(boid_window_border_wraparound))
+            .with_system(boid_stick_together.after(move_boids))
+            .with_system(boid_follow_others.after(boid_stick_together))
+            .with_system(boid_avoid_others.after(boid_follow_others))
     }
 
     pub fn rotate(boid: &mut core::cell::RefMut<(Mut<Boid>, Mut<Transform>)>, radians: f32) {

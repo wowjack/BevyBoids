@@ -7,18 +7,33 @@ use boid::*;
 use bevy_egui::{egui, EguiContext};
 use bevy_prototype_lyon::prelude::*;
 
+#[derive(Clone, PartialEq, Eq, Debug, Hash)]
+enum AppState {
+    Opening,
+    Running
+}
+
 fn main() {
     App::new()
-        .insert_resource(ClearColor(Color::rgb(0.7, 0.7, 0.7)))
+        .add_state(AppState::Opening)
+        .insert_resource(ClearColor(Color::rgb(0.2, 0.2, 0.2)))
         .init_resource::<SimulationSettings>()
         .add_plugins(DefaultPlugins)
         .add_plugin(bevy_egui:: EguiPlugin)
         .add_plugin(ShapePlugin)
         .add_startup_system(init)
-        .add_startup_system(spawn_boids)
-        .add_system_set(Boid::boid_system_group())
-        .add_system(ui)
-        .add_system(handle_num_boids_changes)
+        .add_system_set(
+            SystemSet::on_enter(AppState::Opening).with_system(open_text)
+        )
+        .add_system_set(
+            SystemSet::on_update(AppState::Opening).with_system(intro_timer)
+        )
+        .add_system_set(
+            SystemSet::on_enter(AppState::Running).with_system(spawn_boids).with_system(remove_intro)
+        )
+        .add_system_set(
+            Boid::boid_system_group().with_system(ui).with_system(handle_num_boids_changes)
+        )
         .run();
 }
 
@@ -27,6 +42,51 @@ fn init(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 }
 
+fn open_text(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let font = asset_server.load("fonts/Arial.ttf");
+    commands.spawn(Text2dBundle {
+        text: Text::from_section("BOIDS", TextStyle {
+            font: font.clone(),
+            font_size: 120.,
+            color: Color::WHITE
+            }).with_alignment(TextAlignment::CENTER),
+        transform: Transform {
+            scale: bevy::math::vec3(1., 1., 1.),
+            ..default()
+        },
+        ..default()
+    });
+
+    commands.spawn(Text2dBundle {
+        text: Text::from_section("Jack Kingham", TextStyle {
+            font: font.clone(),
+            font_size: 20.,
+            color: Color::WHITE
+            }).with_alignment(TextAlignment {
+                vertical: VerticalAlign::Center,
+                horizontal: HorizontalAlign::Center
+            }),
+        transform: Transform {
+            translation: bevy::math::vec3(0., -85., 0.),
+            scale: bevy::math::vec3(1., 1., 1.),
+            ..default()
+        },
+        ..default()
+    });
+}
+
+fn intro_timer(mut app_state: ResMut<State<AppState>>, time: Res<Time>) {
+    if time.elapsed_seconds() > 3. {
+        app_state.set(AppState::Running).expect("Changing app state from intro to running failed.");
+    }
+}
+
+fn remove_intro(query: Query<Entity, With<Text>>, mut commands: Commands, mut bg_color: ResMut<ClearColor>) {
+    for text in query.into_iter() {
+        commands.entity(text).despawn();
+    }
+    bg_color.0 = Color::rgb(0.6, 0.6, 0.6);
+}
 
 /////////////////// GUI SYSTEMS ///////////////////
 
