@@ -11,3 +11,4 @@ uid = "0.1.7"
 bevy_egui = "0.17.1"
 bevy_prototype_lyon = "0.7.2"
 rand = "0.8.5"
+

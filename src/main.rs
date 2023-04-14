@@ -139,7 +139,7 @@ fn ui(
         .show(egui_ctx.ctx_mut(), |ui| {
             ui.horizontal(|ui| {
                 ui.label("Number of boids: ");
-                ui.add(egui::Slider::new(&mut ui_state.num_boids, 0..=500));
+                ui.add(egui::Slider::new(&mut ui_state.num_boids, 0..=1000));
                 ui.label("\tRun simulation: ");
                 ui.checkbox(&mut ui_state.run, "");
                 ui.label("\tBoid sight range: ");

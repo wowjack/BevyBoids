@@ -31,7 +31,7 @@ impl Boid {
             .with_system(boid_avoid_others.after(boid_follow_others))
     }
 
-    pub fn rotate(boid: &mut core::cell::RefMut<(Mut<Boid>, Mut<Transform>)>, radians: f32) {
+    pub fn rotate(boid: &mut (Mut<Boid>, Mut<Transform>), radians: f32) {
         boid.1.rotate_z(radians);
         boid.0.velocity = Vec2::from_angle(radians).normalize().rotate(boid.0.velocity);
 
@@ -104,26 +104,26 @@ fn boid_window_border_wraparound(mut boid_query: Query<(&mut Transform, &Sprite)
 
 fn boid_avoid_others(mut boid_query: Query<(&mut Boid, &mut Transform)>, ui_state: Res<SimulationSettings>) {
     if !ui_state.avoid_boids || !ui_state.run {return}
-    //Avoid running into other boids
-    use std::{rc::Rc, cell::RefCell};
-    let boid_list: Vec<Rc<RefCell<(Mut<Boid>, Mut<Transform>)>>> = boid_query.iter_mut().map(|b| Rc::new(RefCell::new(b))).collect();
-    for boid_ref in boid_list.iter() {
-        let mut boid = boid_ref.borrow_mut();
+
+    let mut boid_list: Vec<(Mut<Boid>, Mut<Transform>)> = boid_query.iter_mut().collect();
+    for i in 0..boid_list.len() {
+        let (chunk1, chunk2) = boid_list.split_at_mut(i);
+        let (boid, chunk2) = chunk2.split_first_mut().unwrap();
+
         //these variables represent the line equation ax + by + c = 0
         let a: f32 = boid.0.velocity.y / boid.0.velocity.x;
         let b: f32 = -1.;
         let c: f32 = boid.1.translation.y - (a*boid.1.translation.x);
-        for cmp_boid_ref in boid_list.iter() {
-            if let Ok(cmp_boid) = cmp_boid_ref.try_borrow() {
-                if !boid_is_nearby(&boid.1, &cmp_boid.1, ui_state.boid_range*2.)
-                   || (cmp_boid.1.translation - boid.1.translation).angle_between(Vec3::from((boid.0.velocity, 0.))) >= std::f32::consts::FRAC_PI_3*2.
-                   || distance_transform_to_line(a, b, c, &cmp_boid.1) > BOID_WIDTH
-                {
-                    continue;
-                }  
-                let side = side_of_line(boid.1.translation, boid.1.translation+Vec3::from((boid.0.velocity, 0.)), cmp_boid.1.translation);
-                Boid::rotate(&mut boid, ui_state.avoid_boid_strength * side as f32);
-            }
+
+        for cmp_boid in chunk1.iter().chain(chunk2.iter()) {
+            if !boid_is_nearby(&boid.1, &cmp_boid.1, ui_state.boid_range*2.)
+               || (cmp_boid.1.translation - boid.1.translation).angle_between(Vec3::from((boid.0.velocity, 0.))) >= std::f32::consts::FRAC_PI_3*2.
+               || distance_transform_to_line(a, b, c, &cmp_boid.1) > BOID_WIDTH
+            {
+                continue;
+            }  
+            let side = side_of_line(boid.1.translation, boid.1.translation+Vec3::from((boid.0.velocity, 0.)), cmp_boid.1.translation);
+            Boid::rotate(boid, ui_state.avoid_boid_strength * side as f32);
         }
     }
 }
