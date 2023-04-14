@@ -2,7 +2,7 @@
 
 mod boid;
 
-use bevy::{prelude::*, diagnostic::{LogDiagnosticsPlugin, FrameTimeDiagnosticsPlugin}};
+use bevy::prelude::*;
 use boid::*;
 use bevy_egui::{egui, EguiContext};
 use bevy_prototype_lyon::prelude::*;
