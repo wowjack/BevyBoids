@@ -108,20 +108,23 @@ fn boid_avoid_others(mut boid_query: Query<(&mut Boid, &mut Transform)>, ui_stat
         let (boid, chunk2) = chunk2.split_first_mut().unwrap();
 
         //these variables represent the line equation ax + by + c = 0
+        //the boid's instantaneous velocity line
         let a: f32 = boid.0.velocity.y / boid.0.velocity.x;
         let b: f32 = -1.;
         let c: f32 = boid.1.translation.y - (a*boid.1.translation.x);
-
-        for cmp_boid in chunk1.iter().chain(chunk2.iter()) {
-            if !boid_is_nearby(&boid.1, &cmp_boid.1, ui_state.boid_range*2.)
-               || (cmp_boid.1.translation - boid.1.translation).angle_between(Vec3::from((boid.0.velocity, 0.))) >= std::f32::consts::FRAC_PI_3*2.
-               || distance_transform_to_line(a, b, c, &cmp_boid.1) > BOID_WIDTH
+        let closest = chunk1.iter().chain(chunk2.iter()).reduce(|accum, item| {
+            if (item.1.translation - boid.1.translation).angle_between(Vec3::from((boid.0.velocity, 0.))) <= std::f32::consts::FRAC_PI_3*2. //boid is in front
+               && distance_transform_to_line(a, b, c, &item.1) < BOID_WIDTH //boid is in the way
+               && boid.1.translation.distance(item.1.translation) < boid.1.translation.distance(accum.1.translation)//boid is the closest
             {
-                continue;
-            }  
-            let side = side_of_line(boid.1.translation, boid.1.translation+Vec3::from((boid.0.velocity, 0.)), cmp_boid.1.translation);
-            Boid::rotate(boid, ui_state.avoid_boid_strength * side as f32);
-        }
+                item
+            } else {
+                accum
+            }
+        }).unwrap();
+
+        let side = side_of_line(boid.1.translation, boid.1.translation+Vec3::from((boid.0.velocity, 0.)), closest.1.translation);
+        Boid::rotate(boid, ui_state.avoid_boid_strength * side as f32);
     }
 }
 

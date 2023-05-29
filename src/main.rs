@@ -3,6 +3,7 @@
 mod boid;
 
 use bevy::prelude::*;
+use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use boid::*;
 use bevy_egui::{egui, EguiContext};
 use bevy_prototype_lyon::prelude::*;
@@ -36,6 +37,8 @@ fn main() {
         .add_system_set(
             Boid::boid_system_group().with_system(ui).with_system(handle_num_boids_changes)
         )
+        .add_plugin(LogDiagnosticsPlugin::default())
+        .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .run();
 }
 
